@@ -2,9 +2,7 @@ package com.capacitor.community.googlegameservices;
 
 import android.content.Intent;
 import android.util.Log;
-
 import androidx.activity.result.ActivityResult;
-
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -20,8 +18,15 @@ import com.google.android.gms.games.SnapshotsClient;
 import com.google.android.gms.games.snapshot.Snapshot;
 import com.google.android.gms.games.snapshot.SnapshotMetadata;
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange;
+import com.google.android.gms.games.leaderboard.ScoreSubmissionData;
+import com.google.android.gms.games.leaderboard.ScoreSubmissionData.Result;
+import com.google.android.gms.games.leaderboard.LeaderboardScore;
+import com.google.android.gms.games.leaderboard.LeaderboardVariant;
+import com.google.android.gms.games.leaderboard.LeaderboardScoreBuffer;
+import com.google.android.gms.games.LeaderboardsClient.LeaderboardScores;
+import com.google.android.gms.games.AnnotatedData;
 import com.google.android.gms.tasks.Task;
-
+import com.google.android.gms.tasks.OnSuccessListener;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -34,7 +39,7 @@ public class GoogleGameServicesPlugin extends Plugin {
 
     // intent data that is a list of snapshot metadata.
     public static final String SNAPSHOT_METADATA_LIST = "snapshotmetaList";
-    // intent data that is the conflict id.  used when resolving a conflict.
+    // intent data that is the conflict id. used when resolving a conflict.
     public static final String CONFLICT_ID = "conflictId";
     // intent data that is the retry count for retrying the conflict resolution.
     public static final String RETRY_COUNT = "retrycount";
@@ -54,156 +59,407 @@ public class GoogleGameServicesPlugin extends Plugin {
         mSnapshotsClient = PlayGames.getSnapshotsClient(getActivity());
     }
 
-    @PluginMethod()
+    @PluginMethod
     public void isAuthenticated(final PluginCall call) {
         Log.d(TAG, "isAuthenticated called");
 
         GamesSignInClient gamesSignInClient = PlayGames.getGamesSignInClient(getActivity());
 
-        gamesSignInClient.isAuthenticated().addOnCompleteListener(isAuthenticatedTask -> {
-            boolean isAuthenticated = (isAuthenticatedTask.isSuccessful() && isAuthenticatedTask.getResult().isAuthenticated());
+        gamesSignInClient
+                .isAuthenticated()
+                .addOnCompleteListener(
+                        isAuthenticatedTask -> {
+                            boolean isAuthenticated = (isAuthenticatedTask.isSuccessful()
+                                    && isAuthenticatedTask.getResult().isAuthenticated());
 
-            JSObject ret = new JSObject();
-            ret.put("isAuthenticated", isAuthenticated);
-            if (isAuthenticated) {
-                Log.d(TAG, "User authenticated with google play");
-            } else {
-                Log.d(TAG, "User NOT authenticated with google play");
-            }
-            call.resolve(ret);
-        }).addOnFailureListener(task -> {
-            Log.e(TAG, "isAuthenticated failed", task);
-            call.reject(task.toString());
-        });
+                            JSObject ret = new JSObject();
+                            ret.put("isAuthenticated", isAuthenticated);
+                            if (isAuthenticated) {
+                                Log.d(TAG, "User authenticated with google play");
+                            } else {
+                                Log.d(TAG, "User NOT authenticated with google play");
+                            }
+                            call.resolve(ret);
+                        })
+                .addOnFailureListener(
+                        task -> {
+                            Log.e(TAG, "isAuthenticated failed", task);
+                            call.reject(task.toString());
+                        });
     }
 
-    @PluginMethod()
+    @PluginMethod
     public void signIn(final PluginCall call) {
         Log.d(TAG, "signIn called");
 
         GamesSignInClient gamesSignInClient = PlayGames.getGamesSignInClient(getActivity());
 
-        gamesSignInClient.signIn().addOnCompleteListener(authenticationResultTask -> {
-            boolean isAuthenticated = (authenticationResultTask.isSuccessful() && authenticationResultTask.getResult().isAuthenticated());
+        gamesSignInClient
+                .signIn()
+                .addOnCompleteListener(
+                        authenticationResultTask -> {
+                            boolean isAuthenticated = (authenticationResultTask.isSuccessful()
+                                    && authenticationResultTask.getResult().isAuthenticated());
 
-            JSObject ret = new JSObject();
-            ret.put("isAuthenticated", isAuthenticated);
-            if (isAuthenticated) {
-                Log.d(TAG, "User authenticated with google play");
-            } else {
-                Log.d(TAG, "User NOT authenticated with google play");
-            }
-            call.resolve(ret);
-        }).addOnFailureListener(task -> {
-            Log.e(TAG, "signIn failed", task);
-            call.reject(task.toString());
-        });
+                            JSObject ret = new JSObject();
+                            ret.put("isAuthenticated", isAuthenticated);
+                            if (isAuthenticated) {
+                                Log.d(TAG, "User authenticated with google play");
+                            } else {
+                                Log.d(TAG, "User NOT authenticated with google play");
+                            }
+                            call.resolve(ret);
+                        })
+                .addOnFailureListener(
+                        task -> {
+                            Log.e(TAG, "signIn failed", task);
+                            call.reject(task.toString());
+                        });
     }
 
-    @PluginMethod()
+    @PluginMethod
     public void getCurrentPlayer(final PluginCall call) {
         Log.d(TAG, "getCurrentPlayer called");
 
         PlayersClient playersClient = PlayGames.getPlayersClient(getActivity());
 
-        playersClient.getCurrentPlayer().addOnSuccessListener((Player player) -> {
-            Log.d(TAG, "Success on getCurrentPlayer");
-            JSObject playerObj = new JSObject();
-            playerObj.put("displayName", player.getDisplayName());
-            playerObj.put("iconImageUrl", player.getIconImageUrl());
-            JSObject ret = new JSObject();
-            ret.put("player", playerObj);
-            call.resolve(ret);
-        }).addOnFailureListener((task) -> {
-            Log.e(TAG, "Failed on getCurrentPlayer", task);
-            call.reject("Failed to getCurrentPlayer: " + task);
-        });
+        playersClient
+                .getCurrentPlayer()
+                .addOnSuccessListener(
+                        (Player player) -> {
+                            Log.d(TAG, "Success on getCurrentPlayer");
+                            JSObject playerObj = new JSObject();
+                            playerObj.put("displayName", player.getDisplayName());
+                            playerObj.put("iconImageUrl", player.getIconImageUrl());
+                            JSObject ret = new JSObject();
+                            ret.put("player", playerObj);
+                            call.resolve(ret);
+                        })
+                .addOnFailureListener(
+                        task -> {
+                            Log.e(TAG, "Failed on getCurrentPlayer", task);
+                            call.reject("Failed to getCurrentPlayer: " + task);
+                        });
     }
 
-    @PluginMethod()
+    @PluginMethod
     public void showSavedGamesUI(final PluginCall call) {
         Log.d(TAG, "showSavedGamesUI called");
         doShowSavedGamesUI(call);
     }
 
-    @PluginMethod()
+    @PluginMethod
     public void saveGame(final PluginCall call) {
-        String title = call.getString("title");
-        String data = call.getString("data");
+        final String title = call.getString("title");
+        final String data = call.getString("data");
         Log.d(TAG, "saveGame called with title: " + title + " data: " + data);
 
         mSaveGame.setGameObject(title, data);
         Log.d(TAG, "mSaveGame ended with: " + mSaveGame);
 
-        SnapshotMetadata snapshotMetadata = getActivity().getIntent().getParcelableExtra(SnapshotsClient.EXTRA_SNAPSHOT_METADATA);
+        SnapshotMetadata snapshotMetadata = getActivity().getIntent()
+                .getParcelableExtra(SnapshotsClient.EXTRA_SNAPSHOT_METADATA);
         saveSnapshot(call, snapshotMetadata);
     }
 
-    @PluginMethod()
+    @PluginMethod
     public void loadGame(final PluginCall call) {
-        Log.d(TAG, "loadGame called...");
-        String saveName = call.getString("saveName");
+        Log.d(TAG, "loadGame called");
+        final String saveName = call.getString("saveName");
         if (saveName != null && !saveName.isEmpty()) {
             mCurrentSaveName = saveName;
         }
         loadSnapshot(call);
     }
 
+    @PluginMethod
+    public void submitScore(final PluginCall call) {
+        Long score = call.getLong("score");
+        if (score == null) {
+            final Integer intScore = call.getInt("score");
+            if (intScore == null) {
+                call.reject("Score must be set");
+                return;
+            }
+            score = new Long(intScore);
+        }
+        final String leaderboardId = call.getString("leaderboardId");
+        Log.d(TAG, "submitScore called, data: " + call.getData());
+        try {
+            final Task<ScoreSubmissionData> task = PlayGames.getLeaderboardsClient(getActivity()).submitScoreImmediate(
+                    leaderboardId,
+                    score);
+            task.addOnSuccessListener(submissionData -> {
+                final Result result = submissionData.getScoreResult(LeaderboardVariant.TIME_SPAN_ALL_TIME);
+                final JSObject ret = new JSObject();
+                ret.put("formattedScore", result.formattedScore);
+                ret.put("newBest", result.newBest);
+                ret.put("rawScore", result.rawScore);
+                ret.put("scoreTag", result.scoreTag);
+                call.resolve(ret);
+            });
+            task.addOnFailureListener(e -> {
+                Log.e(TAG, "submitScore failed", e);
+                call.reject("Failed", e);
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error while submitting score", e);
+            call.reject("Failed", e);
+        }
+    }
+
+    private static final int RC_LEADERBOARD_UI = 9004;
+
+    // @PluginMethod
+    // public void loadPlayerScore(final PluginCall call) {
+    // Log.d(TAG, "loadPlayerScore called");
+    // try {
+    // final String leaderboardId = call.getString("leaderboardId");
+    // final Task<AnnotatedData<LeaderboardScores>> task =
+    // PlayGames.getLeaderboardsClient(getActivity())
+    // .loadPlayerCenteredScores(leaderboardId,
+    // LeaderboardVariant.TIME_SPAN_ALL_TIME,
+    // LeaderboardVariant.COLLECTION_PUBLIC, 1);
+    // task.addOnSuccessListener(data -> {
+    // try {
+    // final LeaderboardScores scores = data.get();
+    // if (scores == null) {
+    // call.reject("Failed getting leaderboard scores");
+    // return;
+    // }
+    // final LeaderboardScoreBuffer buff = scores.getScores();
+    // if (buff.getCount() == 0) {
+    // call.resolve(new JSObject());
+    // buff.release();
+    // return;
+    // }
+    // final LeaderboardScore score = buff.get(0);
+    // if (score == null) {
+    // call.reject("Failed getting leaderboard score");
+    // scores.release();
+    // buff.release();
+    // return;
+    // }
+    // final JSObject ret = new JSObject();
+    // ret.put("score", score.toString());
+    // ret.put("displayScore", score.getDisplayScore());
+    // ret.put("displayRank", score.getDisplayRank());
+    // ret.put("rank", score.getRank());
+    // ret.put("rawScore", score.getRawScore());
+    // call.resolve(ret);
+    // buff.release();
+    // } catch (Exception e) {
+    // Log.e(TAG, "Error while loading scores", e);
+    // call.reject("Failed", e);
+    // }
+    // });
+    // task.addOnFailureListener(e -> {
+    // Log.e(TAG, "loadPlayerCenteredScores failed", e);
+    // call.reject("Failed", e);
+    // });
+    // } catch (Exception e) {
+    // Log.e(TAG, "Error while loading scores", e);
+    // call.reject("Failed", e);
+    // }
+    // }
+
+    @PluginMethod
+    public void showLeaderboard(final PluginCall call) {
+        Log.d(TAG, "showLeaderboard called");
+        try {
+            final String leaderboardId = call.getString("leaderboardId");
+            PlayGames
+                    .getLeaderboardsClient(getActivity())
+                    .getLeaderboardIntent(leaderboardId, LeaderboardVariant.TIME_SPAN_ALL_TIME)
+                    .addOnSuccessListener(
+                            new OnSuccessListener<Intent>() {
+                                @Override
+                                public void onSuccess(Intent intent) {
+                                    startActivityForResult(call, intent, RC_LEADERBOARD_UI);
+                                    call.resolve();
+                                }
+                            })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "showLeaderboard failed", e);
+                        call.reject("Failed", e);
+                    });
+        } catch (Exception e) {
+            Log.e(TAG, "Error while showing leaderboard", e);
+            call.reject("Failed", e);
+        }
+    }
+
+    @PluginMethod
+    public void unlockAchievement(final PluginCall call) {
+        Log.d(TAG, "unlockAchievement called");
+        try {
+            final String achievementId = call.getString("achievementId");
+            PlayGames
+                    .getAchievementsClient(getActivity())
+                    .unlock(achievementId);
+            call.resolve();
+        } catch (Exception e) {
+            Log.e(TAG, "Error while unlocking achievement", e);
+            call.reject("Failed", e);
+        }
+    }
+
+    @PluginMethod
+    public void incrementAchievement(final PluginCall call) {
+        Log.d(TAG, "incrementAchievement called");
+        try {
+            final String achievementId = call.getString("achievementId");
+            final Integer increment = call.getInt("increment", 1);
+            PlayGames
+                    .getAchievementsClient(getActivity())
+                    .increment(achievementId, increment);
+            call.resolve();
+        } catch (Exception e) {
+            Log.e(TAG, "Error while incrementing achievement", e);
+            call.reject("Failed", e);
+        }
+    }
+
+    private static final int RC_ACHIEVEMENT_UI = 9003;
+
+    @PluginMethod
+    public void showAchievements(final PluginCall call) {
+        Log.d(TAG, "showAchievements called");
+        PlayGames.getAchievementsClient(getActivity())
+                .getAchievementsIntent()
+                .addOnSuccessListener(new OnSuccessListener<Intent>() {
+                    @Override
+                    public void onSuccess(Intent intent) {
+                        startActivityForResult(call, intent, RC_ACHIEVEMENT_UI);
+                        call.resolve();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "showAchievements failed", e);
+                    call.reject("Failed", e);
+                });
+    }
+
+    // @PluginMethod
+    // public void loadAchievments(final PluginCall call) {
+    // Log.d(TAG, "loadPlayerScore called");
+    // try {
+    // final String leaderboardId = call.getString("leaderboardId");
+    // final Task<AnnotatedData<LeaderboardScores>> task =
+    // PlayGames.getLeaderboardsClient(getActivity())
+    // .loadPlayerCenteredScores(leaderboardId,
+    // LeaderboardVariant.TIME_SPAN_ALL_TIME,
+    // LeaderboardVariant.COLLECTION_PUBLIC, 1);
+    // task.addOnSuccessListener(data -> {
+    // try {
+    // final LeaderboardScores scores = data.get();
+    // if (scores == null) {
+    // call.reject("Failed getting leaderboard scores");
+    // return;
+    // }
+    // final LeaderboardScoreBuffer buff = scores.getScores();
+    // if (buff.getCount() == 0) {
+    // call.resolve(new JSObject());
+    // buff.release();
+    // return;
+    // }
+    // final LeaderboardScore score = buff.get(0);
+    // if (score == null) {
+    // call.reject("Failed getting leaderboard score");
+    // scores.release();
+    // buff.release();
+    // return;
+    // }
+    // final JSObject ret = new JSObject();
+    // ret.put("score", score.toString());
+    // ret.put("displayScore", score.getDisplayScore());
+    // ret.put("displayRank", score.getDisplayRank());
+    // ret.put("rank", score.getRank());
+    // ret.put("rawScore", score.getRawScore());
+    // call.resolve(ret);
+    // buff.release();
+    // } catch (Exception e) {
+    // Log.e(TAG, "Error while loading scores", e);
+    // call.reject("Failed", e);
+    // }
+    // });
+    // task.addOnFailureListener(e -> {
+    // Log.e(TAG, "loadPlayerCenteredScores failed", e);
+    // call.reject("Failed", e);
+    // });
+    // } catch (Exception e) {
+    // Log.e(TAG, "Error while loading scores", e);
+    // call.reject("Failed", e);
+    // }
+    // }
+
     private void loadSnapshot(PluginCall call) {
         // Get the SnapshotsClient from the signed in account.
         SnapshotsClient snapshotsClient = PlayGames.getSnapshotsClient(getActivity());
 
-        // In the case of a conflict, the most recently modified version of this snapshot will be used.
+        // In the case of a conflict, the most recently modified version of this
+        // snapshot will be used.
         int conflictResolutionPolicy = SnapshotsClient.RESOLUTION_POLICY_MOST_RECENTLY_MODIFIED;
 
         Log.d(TAG, "Loading snapshot with save name: " + mCurrentSaveName);
 
         // Open the saved game using its name.
-        snapshotsClient.open(mCurrentSaveName, true, conflictResolutionPolicy).addOnFailureListener(e -> {
-            Log.e(TAG, "Error while opening Snapshot.", e);
-        }).continueWith(task -> {
-            if (task.isSuccessful()) {
-                Snapshot snapshot = task.getResult().getData();
-                // Opening the snapshot was a success and any conflicts have been resolved.
-                try {
-                    // Extract the raw data from the snapshot.
-                    assert snapshot != null;
-                    return snapshot.getSnapshotContents().readFully();
-                } catch (IOException e) {
-                    Log.e(TAG, "Error while reading Snapshot.", e);
-                }
-            }
-            return null;
-        }).addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                byte[] result = task.getResult();
-                mSaveGame = new SaveGame(result);
-                call.resolve(mSaveGame.toJSObject());
-            } else {
-                call.reject(Objects.requireNonNull(task.getException()).toString());
-            }
-        });
+        snapshotsClient
+                .open(mCurrentSaveName, true, conflictResolutionPolicy)
+                .addOnFailureListener(
+                        e -> {
+                            Log.e(TAG, "Error while opening Snapshot.", e);
+                        })
+                .continueWith(
+                        task -> {
+                            if (task.isSuccessful()) {
+                                Snapshot snapshot = task.getResult().getData();
+                                // Opening the snapshot was a success and any conflicts have been resolved.
+                                try {
+                                    // Extract the raw data from the snapshot.
+                                    assert snapshot != null;
+                                    return snapshot.getSnapshotContents().readFully();
+                                } catch (IOException e) {
+                                    Log.e(TAG, "Error while reading Snapshot.", e);
+                                }
+                            }
+                            return null;
+                        })
+                .addOnCompleteListener(
+                        task -> {
+                            if (task.isSuccessful()) {
+                                byte[] result = task.getResult();
+                                mSaveGame = new SaveGame(result);
+                                call.resolve(mSaveGame.toJSObject());
+                            } else {
+                                call.reject(Objects.requireNonNull(task.getException()).toString());
+                            }
+                        });
     }
 
     private void doShowSavedGamesUI(PluginCall call) {
         SnapshotsClient snapshotsClient = PlayGames.getSnapshotsClient(getActivity());
         int maxNumberOfSavedGamesToShow = 5;
 
-        Task<Intent> intentTask = snapshotsClient.getSelectSnapshotIntent("See My Saves", true, true, maxNumberOfSavedGamesToShow);
+        Task<Intent> intentTask = snapshotsClient.getSelectSnapshotIntent("See My Saves", true, true,
+                maxNumberOfSavedGamesToShow);
 
-        intentTask.addOnSuccessListener(intent -> {
-            Log.d(TAG, "doShowSavedGameUI onSuccess called for Intent");
-            startActivityForResult(call, intent, "GoogleActivityResult");
-        });
+        intentTask.addOnSuccessListener(
+                intent -> {
+                    Log.d(TAG, "doShowSavedGameUI onSuccess called for Intent");
+                    startActivityForResult(call, intent, "GoogleActivityResult");
+                });
 
-        intentTask.addOnFailureListener(e -> {
-            Log.e(TAG, "doShowSavedGameUI onFailure called for Intent", e);
-            call.reject("doShowSavedGameUI failed");
-        });
+        intentTask.addOnFailureListener(
+                e -> {
+                    Log.e(TAG, "doShowSavedGameUI onFailure called for Intent", e);
+                    call.reject("doShowSavedGameUI failed");
+                });
     }
 
     /**
-     * This callback will be triggered after you call startActivityForResult from the
+     * This callback will be triggered after you call startActivityForResult from
+     * the
      * showSavedGamesUI method.
      */
     @ActivityCallback
@@ -224,14 +480,15 @@ public class GoogleGameServicesPlugin extends Plugin {
 
                 Log.i(TAG, "Create snapshot from saved: " + mCurrentSaveName);
                 // Create the new snapshot
-                SnapshotMetadata snapshotMetadata = getActivity().getIntent().getParcelableExtra(SnapshotsClient.EXTRA_SNAPSHOT_METADATA);
+                SnapshotMetadata snapshotMetadata = getActivity().getIntent()
+                        .getParcelableExtra(SnapshotsClient.EXTRA_SNAPSHOT_METADATA);
                 saveSnapshot(call, snapshotMetadata);
             }
         }
     }
 
-    private Task<SnapshotsClient.DataOrConflict<Snapshot>> waitForClosedAndOpen(final SnapshotMetadata snapshotMetadata) {
-
+    private Task<SnapshotsClient.DataOrConflict<Snapshot>> waitForClosedAndOpen(
+            final SnapshotMetadata snapshotMetadata) {
         final boolean useMetadata = snapshotMetadata != null;
         if (useMetadata) {
             Log.i(TAG, "Opening snapshot using metadata: " + snapshotMetadata);
@@ -243,20 +500,30 @@ public class GoogleGameServicesPlugin extends Plugin {
 
         Log.d(TAG, "Saving snapshot with filename: " + filename);
 
-        return SnapshotCoordinator.getInstance().waitForClosed(filename).addOnFailureListener(e -> Log.e(TAG, "There was a problem waiting for the file to close!", e)).continueWithTask(task -> {
-            Task<SnapshotsClient.DataOrConflict<Snapshot>> openTask = useMetadata ? SnapshotCoordinator.getInstance().open(mSnapshotsClient, snapshotMetadata) : SnapshotCoordinator.getInstance().open(mSnapshotsClient, filename, true);
-            return openTask.addOnFailureListener(e -> Log.e(TAG, "There was a problem waiting for the file to close!", e));
-        });
+        return SnapshotCoordinator
+                .getInstance()
+                .waitForClosed(filename)
+                .addOnFailureListener(e -> Log.e(TAG, "There was a problem waiting for the file to close!", e))
+                .continueWithTask(
+                        task -> {
+                            Task<SnapshotsClient.DataOrConflict<Snapshot>> openTask = useMetadata
+                                    ? SnapshotCoordinator.getInstance().open(mSnapshotsClient, snapshotMetadata)
+                                    : SnapshotCoordinator.getInstance().open(mSnapshotsClient, filename, true);
+                            return openTask.addOnFailureListener(
+                                    e -> Log.e(TAG, "There was a problem waiting for the file to close!", e));
+                        });
     }
 
     /**
      * Conflict resolution for when Snapshots are opened.
      *
      * @param result     The open snapshot result to resolve on open.
-     * @param retryCount - the current iteration of the retry.  The first retry should be 0.
+     * @param retryCount - the current iteration of the retry. The first retry
+     *                   should be 0.
      * @return The opened Snapshot on success; otherwise, returns null.
      */
-    Snapshot processOpenDataOrConflict(PluginCall call, SnapshotsClient.DataOrConflict<Snapshot> result, int retryCount) {
+    Snapshot processOpenDataOrConflict(PluginCall call, SnapshotsClient.DataOrConflict<Snapshot> result,
+            int retryCount) {
         retryCount++;
 
         if (!result.isConflict()) {
@@ -274,48 +541,57 @@ public class GoogleGameServicesPlugin extends Plugin {
         snapshotList.add(snapshot);
         snapshotList.add(conflictSnapshot);
 
-        // Display both snapshots to the user and allow them to select the one to resolve.
+        // Display both snapshots to the user and allow them to select the one to
+        // resolve.
         selectSnapshotItem(call, snapshotList, conflict.getConflictId(), retryCount);
 
-        // Since we are waiting on the user for input, there is no snapshot available; return null.
+        // Since we are waiting on the user for input, there is no snapshot available;
+        // return null.
         return null;
     }
 
     /**
-     * Prepares saving Snapshot to the user's synchronized storage, conditionally resolves errors,
+     * Prepares saving Snapshot to the user's synchronized storage, conditionally
+     * resolves errors,
      * and stores the Snapshot.
      */
     private void saveSnapshot(final PluginCall call, final SnapshotMetadata snapshotMetadata) {
-        waitForClosedAndOpen(snapshotMetadata).addOnCompleteListener(task -> {
-            SnapshotsClient.DataOrConflict<Snapshot> result = task.getResult();
-            Snapshot snapshotToWrite = processOpenDataOrConflict(call, result, 0);
+        waitForClosedAndOpen(snapshotMetadata)
+                .addOnCompleteListener(
+                        task -> {
+                            SnapshotsClient.DataOrConflict<Snapshot> result = task.getResult();
+                            Snapshot snapshotToWrite = processOpenDataOrConflict(call, result, 0);
 
-            if (snapshotToWrite == null) {
-                // No snapshot available yet; waiting on the user to choose one.
-                call.reject("No snapshot available yet; waiting on the user to choose one.");
-                return;
-            }
+                            if (snapshotToWrite == null) {
+                                // No snapshot available yet; waiting on the user to choose one.
+                                call.reject("No snapshot available yet; waiting on the user to choose one.");
+                                return;
+                            }
 
-            Log.d(TAG, "Writing data to snapshot: " + snapshotToWrite.getMetadata().getUniqueName());
-            try {
-                writeSnapshot(snapshotToWrite).addOnCompleteListener(task1 -> {
-                    if (task1.isSuccessful()) {
-                        Log.i(TAG, "Snapshot saved!");
-                        call.resolve();
-                    } else {
-                        Log.e(TAG, "There was a problem writing the snapshot!", task1.getException());
-                        call.reject("There was a problem writing the snapshot!");
-                    }
-                });
-            } catch (IOException e) {
-                e.printStackTrace();
-                call.reject("There was a problem writing the snapshot!");
-            }
-        });
+                            Log.d(TAG, "Writing data to snapshot: " + snapshotToWrite.getMetadata().getUniqueName());
+                            try {
+                                writeSnapshot(snapshotToWrite)
+                                        .addOnCompleteListener(
+                                                task1 -> {
+                                                    if (task1.isSuccessful()) {
+                                                        Log.i(TAG, "Snapshot saved!");
+                                                        call.resolve();
+                                                    } else {
+                                                        Log.e(TAG, "There was a problem writing the snapshot!",
+                                                                task1.getException());
+                                                        call.reject("There was a problem writing the snapshot!");
+                                                    }
+                                                });
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                call.reject("There was a problem writing the snapshot!");
+                            }
+                        });
     }
 
     /**
-     * Generates metadata, takes a screenshot, and performs the write operation for saving a
+     * Generates metadata, takes a screenshot, and performs the write operation for
+     * saving a
      * snapshot.
      */
     private Task<SnapshotMetadata> writeSnapshot(Snapshot snapshot) throws IOException {
@@ -323,12 +599,13 @@ public class GoogleGameServicesPlugin extends Plugin {
         snapshot.getSnapshotContents().writeBytes(mSaveGame.toBytes());
 
         // Save the snapshot.
-        SnapshotMetadataChange metadataChange = new SnapshotMetadataChange.Builder().setDescription("Modified at: " + Calendar.getInstance().getTime()).build();
+        SnapshotMetadataChange metadataChange = new SnapshotMetadataChange.Builder()
+                .setDescription("Modified at: " + Calendar.getInstance().getTime())
+                .build();
         return SnapshotCoordinator.getInstance().commitAndClose(mSnapshotsClient, snapshot, metadataChange);
     }
 
     private void selectSnapshotItem(PluginCall call, ArrayList<Snapshot> items, String conflictId, int retryCount) {
-
         ArrayList<SnapshotMetadata> snapshotList = new ArrayList<>(items.size());
         for (Snapshot m : items) {
             snapshotList.add(m.getMetadata().freeze());
@@ -342,5 +619,4 @@ public class GoogleGameServicesPlugin extends Plugin {
         Log.d(TAG, "Starting activity to select snapshot");
         startActivityForResult(call, intent, "GoogleActivityResult");
     }
-
 }

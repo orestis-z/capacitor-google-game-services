@@ -38,6 +38,8 @@ console.log("User is authenticated: ", isAuthenticated);
 * [`saveGame(...)`](#savegame)
 * [`loadGame()`](#loadgame)
 * [`getCurrentPlayer()`](#getcurrentplayer)
+* [`submitScore(...)`](#submitscore)
+* [`showLeaderboard(...)`](#showleaderboard)
 * [Interfaces](#interfaces)
 
 </docgen-index>
@@ -123,6 +125,36 @@ getCurrentPlayer() => Promise<{ player: Player; }>
 Returns a player object of the currently signed in player
 
 **Returns:** <code>Promise&lt;{ player: <a href="#player">Player</a>; }&gt;</code>
+
+--------------------
+
+
+### submitScore(...)
+
+```typescript
+submitScore(options: { score: number; leaderboardId: string; }) => Promise<any>
+```
+
+| Param         | Type                                                   |
+| ------------- | ------------------------------------------------------ |
+| **`options`** | <code>{ score: number; leaderboardId: string; }</code> |
+
+**Returns:** <code>Promise&lt;any&gt;</code>
+
+--------------------
+
+
+### showLeaderboard(...)
+
+```typescript
+showLeaderboard(options: { score: number; leaderboardId: string; }) => Promise<any>
+```
+
+| Param         | Type                                                   |
+| ------------- | ------------------------------------------------------ |
+| **`options`** | <code>{ score: number; leaderboardId: string; }</code> |
+
+**Returns:** <code>Promise&lt;any&gt;</code>
 
 --------------------
 
